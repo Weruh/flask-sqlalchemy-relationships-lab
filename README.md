@@ -108,11 +108,9 @@ __repr__ methods are included for each model that return readable summaries for 
 
 #### Step 2: Create Database and Tables
 
-Run migrations after you define your models:
+The initial migration is included. Apply it with:
 
 ```bash
-$ flask db init
-$ flask db migrate -m "Create tables with relationships"
 $ flask db upgrade head
 ```
 
@@ -215,6 +213,34 @@ In this lab, you modeled and built one-to-one, one-to-many, and
 many-to-many relationships using Flask-SQLAlchemy. You seeded 
 and queried relational data, added JSON-based endpoints, and 
 solidified best practices for backend database modeling.
+
+## Run the completed API
+
+Use Python 3.12 and install the dependencies from the lock file:
+
+```bash
+pipenv sync
+cd server
+pipenv run flask --app app db upgrade
+pipenv run python seed.py
+pipenv run flask --app app run --port 5555
+```
+
+The seed command resets the sample records, so run it only when you want to replace local data. The SQLite database is stored in Flask's `server/instance/` directory and is ignored by Git.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/events` | Events with `id`, `name`, and `location` |
+| GET | `/events/<id>/sessions` | The event's sessions with ISO 8601 `start_time` |
+| GET | `/speakers` | Speakers with `id` and `name` |
+| GET | `/speakers/<id>` | Speaker details and `bio_text` |
+| GET | `/sessions/<id>/speakers` | Speakers for the session, including `bio_text` |
+
+Missing event, speaker, or session IDs return JSON with an `error` field and HTTP 404. Speakers without a bio return `"No bio available"`.
+
+Run the test suite from the project root with `pipenv run pytest`.
+
+![Seeded events API response](assets/events-api.png)
 
 ## Submission
 

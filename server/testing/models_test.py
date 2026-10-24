@@ -51,3 +51,29 @@ def test_speaker_session_relationship(test_client):
 
     assert speaker.sessions[0].title == "Serverless Architectures"
     assert session.speakers[0].name == "John Smith"
+
+
+def test_deleting_event_cascades_to_sessions(test_client):
+    event = Event(name="Delete Me", location="Nairobi")
+    session = Session(title="Temporary Session", event=event)
+    db.session.add(event)
+    db.session.commit()
+    session_id = session.id
+
+    db.session.delete(event)
+    db.session.commit()
+
+    assert db.session.get(Session, session_id) is None
+
+
+def test_deleting_speaker_cascades_to_bio(test_client):
+    speaker = Speaker(name="Temporary Speaker")
+    bio = Bio(bio_text="Temporary biography", speaker=speaker)
+    db.session.add(speaker)
+    db.session.commit()
+    bio_id = bio.id
+
+    db.session.delete(speaker)
+    db.session.commit()
+
+    assert db.session.get(Bio, bio_id) is None

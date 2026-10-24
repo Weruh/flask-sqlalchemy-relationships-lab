@@ -3,7 +3,7 @@
 from flask import Flask, jsonify
 from flask_migrate import Migrate
 
-from models import db, Event, Session, Speaker, Bio
+from models import db, Event, Session, Speaker
 
 app = Flask(__name__)
 
@@ -14,31 +14,62 @@ app.json.compact = False
 migrate = Migrate(app, db)
 db.init_app(app)
 
-# TODO: add functionality to all routes
-
 @app.route('/events')
 def get_events():
-    pass
+    return jsonify([
+        {'id': event.id, 'name': event.name, 'location': event.location}
+        for event in Event.query.all()
+    ]), 200
 
 
 @app.route('/events/<int:id>/sessions')
 def get_event_sessions(id):
-    pass
+    event = db.session.get(Event, id)
+    if event is None:
+        return jsonify({'error': 'Event not found'}), 404
+    return jsonify([
+        {
+            'id': session.id,
+            'title': session.title,
+            'start_time': session.start_time.isoformat() if session.start_time else None,
+        }
+        for session in event.sessions
+    ]), 200
 
 
 @app.route('/speakers')
 def get_speakers():
-    pass
+    return jsonify([
+        {'id': speaker.id, 'name': speaker.name}
+        for speaker in Speaker.query.all()
+    ]), 200
 
 
 @app.route('/speakers/<int:id>')
 def get_speaker(id):
-    pass
+    speaker = db.session.get(Speaker, id)
+    if speaker is None:
+        return jsonify({'error': 'Speaker not found'}), 404
+    return jsonify({
+        'id': speaker.id,
+        'name': speaker.name,
+        'bio_text': speaker.bio.bio_text if speaker.bio else 'No bio available',
+    }), 200
 
 
 @app.route('/sessions/<int:id>/speakers')
 def get_session_speakers(id):
-    pass
+    session = db.session.get(Session, id)
+    if session is None:
+        return jsonify({'error': 'Session not found'}), 404
+    return jsonify([
+        {
+            'id': speaker.id,
+            'name': speaker.name,
+            'bio_text': speaker.bio.bio_text if speaker.bio else 'No bio available',
+        }
+        for speaker in session.speakers
+    ]), 200
 
 
 if __name__ == '__main__':
