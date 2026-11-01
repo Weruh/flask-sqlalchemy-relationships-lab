@@ -1,13 +1,14 @@
 import pytest
-from server.app import app, db
+from server.app import create_app, db
 from server.models import Event, Session, Speaker, Bio
 import datetime
 
 @pytest.fixture(scope="function")
 def test_client():
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+    })
 
     with app.app_context():
         db.create_all()
@@ -33,7 +34,8 @@ def test_client():
 
         db.session.commit()
 
-        yield app.test_client()
-
-        db.session.remove()
-        db.drop_all()
+        try:
+            yield app.test_client()
+        finally:
+            db.session.remove()
+            db.drop_all()

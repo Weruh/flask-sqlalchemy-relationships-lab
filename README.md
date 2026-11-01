@@ -48,11 +48,11 @@ $ export FLASK_APP=app.py
 $ export FLASK_RUN_PORT=5555
 ```
 
-You will find:
-* `models.py` – already created but empty.
-* `seed.py` – contains starter seed data (you will run this later after models are built).
-* `testing/` – directory with test suites for models and endpoints to check your work.
-* `app.py` – Flask app setup ready for you to add endpoints.
+The completed implementation includes:
+* `models.py` – models, bidirectional relationships, and ownership cascades.
+* `seed.py` – repeatable sample data, replaced in a single transaction.
+* `testing/` – model, endpoint, migration, and database safety tests.
+* `app.py` – JSON endpoints and an application factory for isolated configuration.
 
 ## Instructions
 
@@ -238,7 +238,27 @@ The seed command resets the sample records, so run it only when you want to repl
 
 Missing event, speaker, or session IDs return JSON with an `error` field and HTTP 404. Speakers without a bio return `"No bio available"`.
 
-Run the test suite from the project root with `pipenv run pytest`.
+You can also run everything from the project root:
+
+```bash
+pipenv run flask --app server.app db upgrade
+pipenv run python -m server.seed
+pipenv run flask --app server.app run --port 5555
+```
+
+Both launch modes use the same `server/instance/app.db` database and migration directory.
+Importing `server.seed` does not modify the database. Seeding replaces the entire sample
+catalog atomically; a failure rolls back the reset.
+
+Run the test suite from the project root with `pipenv run pytest` (or
+`.venv/bin/python -m pytest` if using the existing virtual environment). Tests build
+separate app instances with in-memory SQLite databases, and migration tests use a
+temporary database. They do not clear the development database.
+
+The regression suite covers association cleanup, orphan deletion, uniqueness constraints,
+empty collections, absent bios and dates, repeatable seeding, rollback on seed failure,
+and migration upgrades and downgrades. The pinned Flask/Werkzeug and pytest versions
+emit upstream deprecation warnings on Python 3.12.
 
 ![Seeded events API response](assets/events-api.png)
 

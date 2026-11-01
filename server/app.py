@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
-from flask import Flask, jsonify
+from pathlib import Path
+
+from flask import Blueprint, Flask, jsonify
 from flask_migrate import Migrate
 
-from models import db, Event, Session, Speaker
+if __package__:
+    from .models import db, Event, Session, Speaker
+else:
+    from models import db, Event, Session, Speaker
 
-app = Flask(__name__)
+api = Blueprint('api', __name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.json.compact = False
 
-migrate = Migrate(app, db)
-db.init_app(app)
-
-@app.route('/events')
+@api.route('/events')
 def get_events():
     return jsonify([
         {'id': event.id, 'name': event.name, 'location': event.location}
@@ -22,7 +21,7 @@ def get_events():
     ]), 200
 
 
-@app.route('/events/<int:id>/sessions')
+@api.route('/events/<int:id>/sessions')
 def get_event_sessions(id):
     event = db.session.get(Event, id)
     if event is None:
@@ -37,7 +36,7 @@ def get_event_sessions(id):
     ]), 200
 
 
-@app.route('/speakers')
+@api.route('/speakers')
 def get_speakers():
     return jsonify([
         {'id': speaker.id, 'name': speaker.name}
@@ -45,7 +44,7 @@ def get_speakers():
     ]), 200
 
 
-@app.route('/speakers/<int:id>')
+@api.route('/speakers/<int:id>')
 def get_speaker(id):
     speaker = db.session.get(Speaker, id)
     if speaker is None:
@@ -57,7 +56,7 @@ def get_speaker(id):
     }), 200
 
 
-@app.route('/sessions/<int:id>/speakers')
+@api.route('/sessions/<int:id>/speakers')
 def get_session_speakers(id):
     session = db.session.get(Session, id)
     if session is None:
@@ -70,6 +69,27 @@ def get_session_speakers(id):
         }
         for speaker in session.speakers
     ]), 200
+
+
+def create_app(config=None):
+    """Configure each app before binding SQLAlchemy, including isolated test apps."""
+    server_dir = Path(__file__).resolve().parent
+    app = Flask(__name__, instance_path=str(server_dir / 'instance'))
+    app.config.from_mapping(
+        SQLALCHEMY_DATABASE_URI='sqlite:///app.db',
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+    if config is not None:
+        app.config.update(config)
+    app.json.compact = False
+
+    db.init_app(app)
+    Migrate(app, db, directory=str(server_dir / 'migrations'))
+    app.register_blueprint(api)
+    return app
+
+
+app = create_app()
 
 
 if __name__ == '__main__':
